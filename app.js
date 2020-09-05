@@ -53,12 +53,6 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.get('/', (req, res) => {
-    console.log('Inside the homepage callback function')
-    console.log(req.sessionID)
-    res.send(`You hit home page!\n`)
-});
-
 app.get('/login', (req, res) => {
     console.log('Inside GET /login callback function')
     console.log(req.sessionID)
@@ -82,11 +76,6 @@ function requireLogin(req) {
         throw new Error("Not Authenticated!");
     }
 }
-
-app.get('/authrequired', (req, res) => {
-    requireLogin(req);
-    res.send('you hit the authentication endpoint\n')
-})
 
 app.use(function(err, req, res, next) {
     console.error(err.stack)
