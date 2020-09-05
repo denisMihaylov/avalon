@@ -13,3 +13,11 @@ html {
     background-repeat: no-repeat;
     background-size: cover;
 }
+
+.game {
+    width: 18rem;
+    height: 15rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
