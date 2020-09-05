@@ -6,23 +6,21 @@ const uuid = require('uuid')
 const routes = require('./routes/index');
 const FileStore = require('session-file-store')(session);
 const passport = require('passport');
-const { NULL } = require('node-sass');
 const LocalStrategy = require('passport-local').Strategy;
+const bcrypt = require('bcrypt');
 
 const users = [
-    { id: 'denis', email: 'denis@gmail.com', password: 'password' }
+    { id: 'denis', email: 'denis@gmail.com', password: '$2a$10$.niYNiRCz524NgxElJKM6eC7Rx3Qn/6/lUp4jP6onqupyfckTB0I6' }
 ]
 
 passport.use(new LocalStrategy({ usernameField: 'email' },
     (email, password, done) => {
-        console.log('Inside local strategy callback');
         // TODO: Call the database and find the user by email. Then check the password
         const user = users[0]
-        if (email === user.email && password === user.password) {
-            console.log('Local strategy returned true')
+        if (email === user.email && bcrypt.compareSync(password, user.password)) {
             return done(null, user)
         } else {
-            console.log("Failed Authentication");
+            done(new Error("Username or password are incorrect!"));
         }
     }
 ));
@@ -70,42 +68,32 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res, next) => {
     console.log('Inside POST /login callback')
     passport.authenticate('local', (err, user, info) => {
-        if (err != null) {
-            console.log(err);
-        }
-        console.log('Inside passport.authenticate() callback');
-        console.log(`req.session.passport: ${JSON.stringify(req.session.passport)}`)
-        console.log(`req.user: ${JSON.stringify(req.user)}`)
+        if (err) { return next(err); }
+        if (!user) { return res.redirect('/login'); }
         req.login(user, (err) => {
-            if (err != null) {
-                console.log(err)
-            }
-            console.log('Inside req.login() callback')
-            console.log(`req.session.passport: ${JSON.stringify(req.session.passport)}`)
-            console.log(`req.user: ${JSON.stringify(req.user)}`)
-            return res.send('You were authenticated & logged in!\n');
+            if (err) { return next(err); }
+            res.status(200).end()
         })
     })(req, res, next);
 })
 
-app.get('/authrequired', (req, res) => {
-    console.log('Inside GET /authrequired callback')
-    console.log(`User authenticated? ${req.isAuthenticated()}`)
-    if (req.isAuthenticated()) {
-        res.send('you hit the authentication endpoint\n')
-    } else {
-        res.status(403).send({
-            message: 'Not Authenticated!'
-        })
+function requireLogin(req) {
+    if (!req.isAuthenticated()) {
+        throw new Error("Not Authenticated!");
     }
+}
+
+app.get('/authrequired', (req, res) => {
+    requireLogin(req);
+    res.send('you hit the authentication endpoint\n')
 })
 
 app.use(function(err, req, res, next) {
     console.error(err.stack)
-    res.status(500).send('Something broke!')
+    res.status(500).send(err.message)
 })
 
-// app.use('/', routes);
-// app.use('/static', express.static('static'));
+app.use('/', routes);
+app.use('/static', express.static('static'));
 
 module.exports = app;
